@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Git 完整链路 | 架构图 + VS Code映射 + Git vs GitHub + 提交方式对比</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'SF Pro Text', 'PingFang SC', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f1f4f9;
+            padding: 40px 24px;
+            color: #1a2c3e;
+        }
+
+        .git-viz-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.15);
+            padding: 2rem 1.8rem;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1f3b4c, #1e5a6f);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.3rem;
+        }
+
+        .sub {
+            color: #2c6979;
+            border-left: 4px solid #2c7da0;
+            padding-left: 1rem;
+            margin-bottom: 2rem;
+            font-weight: 450;
+        }
+
+        /* 四个空间卡片 */
+        .four-spaces {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin-bottom: 2.8rem;
+        }
+
+        .space-card {
+            flex: 1;
+            min-width: 210px;
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2edf2;
+            transition: transform 0.2s;
+            overflow: hidden;
+        }
+
+        .space-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-header {
+            padding: 1rem 1.2rem 0.6rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 2px solid;
+        }
+
+        .local-badge, .remote-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+
+        .local-badge { background: #e0f0fa; color: #00668c; }
+        .remote-badge { background: #ffe6e0; color: #bc3900; }
+
+        .card-body {
+            padding: 0.9rem 1.2rem 1.2rem;
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .working .card-header { border-bottom-color: #5f9c6b; color: #2c5e2e; }
+        .staging .card-header { border-bottom-color: #e9b35f; color: #b4650a; }
+        .local-repo .card-header { border-bottom-color: #4c9faf; color: #1f6d7a; }
+        .remote-repo .card-header { border-bottom-color: #d95b5b; color: #a13030; }
+
+        .detail-row {
+            display: flex;
+            margin-top: 8px;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: baseline;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #2c3e50;
+            min-width: 70px;
+            font-size: 0.82rem;
+        }
+
+        /* 架构图区域 */
+        .arch-section {
+            background: #f8fafd;
+            border-radius: 1.8rem;
+            padding: 1.6rem 1rem;
+            margin-bottom: 2rem;
+            box-shadow: inset 0 1px 4px #00000008, 0 6px 12px rgba(0,0,0,0.03);
+        }
+
+        .arch-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            padding-left: 0.8rem;
+            border-left: 3px solid #2c7da0;
+        }
+
+        .flow-svg-container {
+            overflow-x: auto;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 1.5rem;
+            padding: 1.2rem 0.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        svg {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            height: auto;
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+        }
+
+        @media (max-width: 860px) {
+            .git-viz-container { padding: 1.2rem; }
+            svg { min-width: 780px; }
+            .flow-svg-container { overflow-x: scroll; }
+        }
+
+        /* 问答样式 */
+        .qa-block {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .qa-item {
+            background: #ffffff;
+            border-radius: 1.2rem;
+            border: 1px solid #e2edf2;
+            overflow: hidden;
+        }
+
+        .qa-question {
+            background: #f2f6fc;
+            padding: 1rem 1.4rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #1a4b5e;
+            border-left: 5px solid #2c7da0;
+        }
+
+        .qa-answer {
+            padding: 1rem 1.6rem 1.2rem;
+            line-height: 1.55;
+            color: #2c3e4f;
+        }
+
+        .qa-answer code {
+            background: #ecf3f8;
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .highlight-diff {
+            background: #fff2df;
+            padding: 0.2rem 0.4rem;
+            border-radius: 8px;
+        }
+
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin-top: 0.8rem;
+        }
+
+        .comp-card {
+            flex: 1;
+            background: #fefef7;
+            border-radius: 1rem;
+            padding: 0.8rem 1rem;
+            border-left: 3px solid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .comp-card h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        hr {
+            margin: 0.5rem 0;
+            border: 0;
+            height: 1px;
+            background: linear-gradient(to right, #cbdde9, transparent);
+        }
+
+        .footnote {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            text-align: center;
+            color: #5b7f95;
+            border-top: 1px solid #cbdde9;
+            padding-top: 1.2rem;
+        }
+
+        .vscode-tip {
+            background: #e9f3fa;
+            border-radius: 14px;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            display: inline-block;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="git-viz-container">
+    <h1>📐 Git 工程化版本管理 · 完整链路</h1>
+    <div class="sub">4 个独立空间 + 5 个核心命令 · VS Code 图形化映射 · Git vs GitHub 本质区别</div>
+
+    <!-- 1. 四个空间科普 (保持原风格) -->
+    <div class="four-spaces">
+        <div class="space-card working">
+            <div class="card-header"><span>📁 工作目录</span><span class="local-badge">本地 · 你的电脑</span></div>
+            <div class="card-body">
+                <div class="detail-row"><span class="detail-label">🗂️ 别名:</span> Working Directory</div>
+                <div class="detail-row"><span class="detail-label">✏️ VS Code 区域:</span> 「更改」区域</div>
+                <div class="detail-row"><span class="detail-label">💾 存储:</span> 项目文件夹（实体文件）</div>
+                <div class="detail-row"><span class="detail-label">🔁 状态:</span> modified / untracked</div>
+                <div class="detail-row"><span class="detail-label">🎯 本质:</span> 自由编辑区，Git未固化</div>
+            </div>
+        </div>
+        <div class="space-card staging">
+            <div class="card-header"><span>📋 暂存区</span><span class="local-badge">本地 · 你的电脑</span></div>
+            <div class="card-body">
+                <div class="detail-row"><span class="detail-label">🗂️ 别名:</span> Staging Area / Index</div>
+                <div class="detail-row"><span class="detail-label">✏️ VS Code 区域:</span> 「暂存的更改」</div>
+                <div class="detail-row"><span class="detail-label">💾 存储:</span> .git/index 文件</div>
+                <div class="detail-row"><span class="detail-label">🔁 状态:</span> staged</div>
+                <div class="detail-row"><span class="detail-label">🎯 本质:</span> 下一次提交的候选清单</div>
+            </div>
+        </div>
+        <div class="space-card local-repo">
+            <div class="card-header"><span>🏛️ 本地仓库</span><span class="local-badge">本地 · 你的电脑</span></div>
+            <div class="card-body">
+                <div class="detail-row"><span class="detail-label">🗂️ 别名:</span> Local Repository</div>
+                <div class="detail-row"><span class="detail-label">✏️ VS Code 对应:</span> git log / 无独立面板</div>
+                <div class="detail-row"><span class="detail-label">💾 存储:</span> .git/objects (提交快照)</div>
+                <div class="detail-row"><span class="detail-label">🔁 状态:</span> committed (不可变历史)</div>
+                <div class="detail-row"><span class="detail-label">🎯 本质:</span> 永久保存的版本快照</div>
+            </div>
+        </div>
+        <div class="space-card remote-repo">
+            <div class="card-header"><span>☁️ 远程仓库</span><span class="remote-badge">云端 · GitHub/GitLab</span></div>
+            <div class="card-body">
+                <div class="detail-row"><span class="detail-label">🗂️ 别名:</span> Remote Repository</div>
+                <div class="detail-row"><span class="detail-label">🌐 平台:</span> GitHub, GitLab, Gitee</div>
+                <div class="detail-row"><span class="detail-label">💾 存储:</span> 云服务器硬盘</div>
+                <div class="detail-row"><span class="detail-label">🔁 同步方式:</span> push / pull / fetch</div>
+                <div class="detail-row"><span class="detail-label">🎯 本质:</span> 备份 + 团队协作枢纽</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 专业架构图: 增加 VS Code 操作映射 -->
+    <div class="arch-section">
+        <div class="arch-title">⚙️ 数据流转架构图 · 矩形=空间 / 箭头=命令 / 下方标注VS Code动作</div>
+        <div class="flow-svg-container">
+            <svg viewBox="0 0 1120 340" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff; border-radius: 20px;">
+                <defs>
+                    <marker id="arrowSolid" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+                        <path d="M2,2 L10,6 L2,10 L3,6 Z" fill="#2c7da0" stroke="none" />
+                    </marker>
+                    <marker id="arrowRemote" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+                        <path d="M2,2 L10,6 L2,10 L3,6 Z" fill="#d95b5b" stroke="none" />
+                    </marker>
+                    <filter id="shadowRect" x="-5%" y="-5%" width="115%" height="115%">
+                        <feDropShadow dx="2" dy="3" stdDeviation="3" flood-opacity="0.1"/>
+                    </filter>
+                </defs>
+                <rect width="1120" height="340" fill="#ffffff" rx="16" ry="16" />
+                
+                <!-- 1. 工作目录 -->
+                <rect x="30" y="90" width="190" height="100" rx="14" fill="#eaf7eb" stroke="#5f9c6b" stroke-width="2" filter="url(#shadowRect)"/>
+                <text x="125" y="125" text-anchor="middle" font-weight="bold" fill="#2c5e2e" font-size="15">📁 工作目录</text>
+                <text x="125" y="146" text-anchor="middle" font-size="11" fill="#3c6e47">Working Directory</text>
+                <text x="125" y="166" text-anchor="middle" font-size="10" fill="#5f7e6b">VS Code “更改”区域</text>
+                
+                <!-- 2. 暂存区 -->
+                <rect x="320" y="90" width="190" height="100" rx="14" fill="#fef3e2" stroke="#e9b35f" stroke-width="2" filter="url(#shadowRect)"/>
+                <text x="415" y="125" text-anchor="middle" font-weight="bold" fill="#b4650a" font-size="15">📋 暂存区</text>
+                <text x="415" y="146" text-anchor="middle" font-size="11" fill="#9b6e2c">Staging Area</text>
+                <text x="415" y="166" text-anchor="middle" font-size="10" fill="#b88b40">VS Code “暂存的更改”</text>
+                
+                <!-- 3. 本地仓库 -->
+                <rect x="610" y="90" width="190" height="100" rx="14" fill="#e2f1f4" stroke="#4c9faf" stroke-width="2" filter="url(#shadowRect)"/>
+                <text x="705" y="125" text-anchor="middle" font-weight="bold" fill="#1f6d7a" font-size="15">🏛️ 本地仓库</text>
+                <text x="705" y="146" text-anchor="middle" font-size="11" fill="#2f7e8c">Local Repository</text>
+                <text x="705" y="166" text-anchor="middle" font-size="10" fill="#4b8f9c">.git 文件夹 (永久历史)</text>
+                
+                <!-- 4. 远程仓库 -->
+                <rect x="900" y="90" width="190" height="100" rx="14" fill="#feedea" stroke="#d95b5b" stroke-width="2" filter="url(#shadowRect)"/>
+                <text x="995" y="125" text-anchor="middle" font-weight="bold" fill="#a13030" font-size="15">☁️ 远程仓库</text>
+                <text x="995" y="146" text-anchor="middle" font-size="11" fill="#c4543a">Remote Repository</text>
+                <text x="995" y="166" text-anchor="middle" font-size="10" fill="#bd5b40">GitHub / GitLab 云端</text>
+                
+                <!-- 箭头命令 git add -->
+                <path d="M 220 140 L 310 140" stroke="#2c7da0" stroke-width="3" marker-end="url(#arrowSolid)"/>
+                <rect x="235" y="112" width="80" height="26" rx="30" fill="#eef2fc" stroke="#2c7da0" stroke-width="1.2"/>
+                <text x="275" y="129" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#1c5a73">git add</text>
+                <text x="275" y="148" text-anchor="middle" font-size="9" fill="#2c7da0">(点击 + 号)</text>
+                
+                <!-- 箭头命令 git commit -->
+                <path d="M 510 140 L 600 140" stroke="#2c7da0" stroke-width="3" marker-end="url(#arrowSolid)"/>
+                <rect x="525" y="112" width="90" height="26" rx="30" fill="#eef2fc" stroke="#2c7da0" stroke-width="1.2"/>
+                <text x="570" y="129" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#1c5a73">git commit</text>
+                <text x="570" y="148" text-anchor="middle" font-size="9" fill="#2c7da0">(✓ 提交按钮)</text>
+                
+                <!-- 箭头命令 git push -->
+                <path d="M 800 140 L 890 140" stroke="#d95b5b" stroke-width="3" marker-end="url(#arrowRemote)"/>
+                <rect x="815" y="112" width="80" height="26" rx="30" fill="#fef2ef" stroke="#d95b5b" stroke-width="1.2"/>
+                <text x="855" y="129" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#b13b2a">git push</text>
+                <text x="855" y="148" text-anchor="middle" font-size="9" fill="#d95b5b">(点击推送)</text>
+
+                <!-- git pull (反向虚线) 远程 → 本地 -->
+                <path d="M 900 210 Q 900 275 705 275 Q 610 275 610 200" stroke="#d95b5b" stroke-width="2.2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrowRemote)"/>
+                <rect x="700" y="263" width="100" height="26" rx="30" fill="#fff0ed" stroke="#d95b5b" stroke-width="1"/>
+                <text x="750" y="279" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="11" fill="#b84830">git pull</text>
+                <text x="750" y="296" text-anchor="middle" font-size="9" fill="#b84830">(同步远程 → 本地)</text>
+                
+                <!-- git clone 首次克隆 -->
+                <path d="M 995 195 L 995 240 L 125 240 L 125 200" stroke="#b16e4a" stroke-width="2" fill="none" stroke-dasharray="5 3" marker-end="url(#arrowSolid)"/>
+                <rect x="440" y="228" width="110" height="26" rx="30" fill="#fcf4ea" stroke="#b16e4a" stroke-width="1"/>
+                <text x="495" y="244" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="11" fill="#a5522f">git clone</text>
+                <text x="495" y="261" text-anchor="middle" font-size="9" fill="#a5522f">(首次克隆项目)</text>
+                
+                <!-- 图例 -->
+                <text x="50" y="45" font-size="11" fill="#3a6b7e" font-weight="500">▸ 实线箭头: 提交推送流</text>
+                <text x="280" y="45" font-size="11" fill="#bd6b4a" font-weight="500">▸ 虚线: 协作/反向流</text>
+            </svg>
+        </div>
+        <div class="vscode-tip" style="margin-top: 10px; text-align: center; display: block; width: fit-content; margin-left: auto; margin-right: auto;">
+            💡 VS Code 图形化映射: git add = 点击文件旁的「+」; git commit = 输入消息后点击「✓」; git push = 点击状态栏推送按钮或「...」菜单
+        </div>
+    </div>
+
+    <!-- 3. 问答: Git VS GitHub 区别 (新增) -->
+    <div class="qa-block">
+        <div class="qa-item">
+            <div class="qa-question">🔍 Git 和 GitHub 到底有什么区别？很多人混为一谈</div>
+            <div class="qa-answer">
+                <p><strong>✅ Git</strong> 是一个<strong>分布式版本控制系统</strong>，运行在你<strong>本地电脑</strong>上的命令行工具。它负责记录文件的每一次变化、管理三个本地空间（工作目录/暂存区/本地仓库），完全<strong>不需要联网</strong>就能完成 commit、分支、回滚等操作。</p>
+                <p style="margin-top: 10px;"><strong>✅ GitHub</strong> 是一个<strong>基于 Git 的云端代码托管平台</strong>，运行在<strong>远程服务器</strong>上。它提供 Web 界面、协作功能（Pull Request、Issues）、CI/CD 等，必须<strong>联网</strong>才能 push/pull。</p>
+                <div class="comparison-grid">
+                    <div class="comp-card" style="border-left-color: #2c7da0;">
+                        <h4>📦 Git (本地工具)</h4>
+                        <ul style="margin-left: 1.2rem; font-size: 0.85rem;">
+                            <li>安装在你的电脑</li>
+                            <li>管理版本历史、分支</li>
+                            <li>命令: commit, add, branch</li>
+                            <li>离线完全可用</li>
+                        </ul>
+                    </div>
+                    <div class="comp-card" style="border-left-color: #d95b5b;">
+                        <h4>🌐 GitHub (云端平台)</h4>
+                        <ul style="margin-left: 1.2rem; font-size: 0.85rem;">
+                            <li>运行在 GitHub 服务器</li>
+                            <li>备份 + 团队协作</li>
+                            <li>命令: push, pull, clone</li>
+                            <li>需要网络连接</li>
+                        </ul>
+                    </div>
+                </div>
+                <p style="margin-top: 12px;"><strong>一句话</strong>：Git 是汽车引擎（版本控制技术），GitHub 是停车场+社交圈（云端托管+协作）。没有 Git，GitHub 无法工作；没有 GitHub，Git 依然可以单机使用。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 问答: VS Code 中更改 vs 暂存更改 (增强现有区别) -->
+    <div class="qa-block">
+        <div class="qa-item">
+            <div class="qa-question">🔎 VS Code 源代码管理中「更改」(Changes) 与「暂存的更改」(Staged Changes) 核心区别是什么？</div>
+            <div class="qa-answer">
+                <p><strong>📌 本质区别：是否进入「提交候选清单」</strong> —— 暂存区是 Git 精细化版本管理的精髓。</p>
+                <ul style="margin-left: 1.5rem; margin-top: 6px; line-height: 1.5;">
+                    <li><strong>「更改」区域</strong> → 工作目录：你所有已修改但未通知 Git 准备提交的文件。状态 = modified / untracked。</li>
+                    <li><strong>「暂存的更改」区域</strong> → 暂存区：通过 <code>git add</code> 或点击 `+` 号后，文件快照被冻结在暂存区，成为下一次提交的候选内容。状态 = staged。</li>
+                </ul>
+                <p style="margin-top: 10px;"><strong>🎯 为什么需要两个区域？</strong> 实现精细化版本管理。可只挑选部分文件放入暂存区，分多次提交（例如 bug 修复与文档更新拆成两个 commit）。</p>
+                <div style="background: #ecf7f0; padding: 8px 12px; border-radius: 16px; margin-top: 8px;">
+                    ✅ 示例：同时修改了 <code>auth.js</code> 和 <code>README.md</code>，只想先提交 auth.js。<br>
+                    → 在「更改」区域将 auth.js 暂存（点 +） → auth.js 移动到「暂存的更改」 → 填写消息并 commit → README.md 仍在「更改」区，不影响本次提交。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 新增问答：把本地代码提交到 GitHub 的两种方式：终端 vs VS Code Git 区别 -->
+    <div class="qa-block">
+        <div class="qa-item">
+            <div class="qa-question">🖥️ 将本地代码提交到 GitHub 的两种方式：终端 与 VS Code Git 图形界面，核心区别是什么？</div>
+            <div class="qa-answer">
+                <p>两种方式本质都是调用 Git 命令，但交互体验和适用场景不同：</p>
+                <div class="comparison-grid">
+                    <div class="comp-card" style="border-left-color: #2c7da0;">
+                        <h4>⌨️ 终端 (Terminal)</h4>
+                        <ul style="margin-left: 1.2rem; font-size: 0.85rem;">
+                            <li>直接输入 <code>git add</code> / <code>git commit</code> / <code>git push</code></li>
+                            <li>适合批量操作、复杂命令（rebase, reset）</li>
+                            <li>脚本化 / 自动化部署必备</li>
+                            <li>需要记住命令和参数</li>
+                            <li>手不离开键盘，效率高（熟练后）</li>
+                        </ul>
+                    </div>
+                    <div class="comp-card" style="border-left-color: #e9b35f;">
+                        <h4>🖱️ VS Code Git 面板</h4>
+                        <ul style="margin-left: 1.2rem; font-size: 0.85rem;">
+                            <li>点击 `+` / `✓` / 推送按钮</li>
+                            <li>可视化查看差异、逐行暂存</li>
+                            <li>适合初学者、单文件/少量修改</li>
+                            <li>无需记忆命令，降低门槛</li>
+                            <li>提交历史、冲突解决更直观</li>
+                        </ul>
+                    </div>
+                </div>
+                <p style="margin-top: 12px;"><strong>🔁 两者关系</strong>：VS Code Git 界面底层仍然是执行 Git 命令，只是封装成了按钮。完全等价，没有功能缺失。选择哪个取决于：<br>
+                → 需要速度/批量操作/复杂指令 → 终端。<br>
+                → 需要可视化确认/学习阶段/偶尔提交 → VS Code 面板。<br>
+                ✅ 你可以混用：用 VS Code 暂存，用终端执行高级 rebase。</p>
+                <div class="vscode-tip" style="margin-top: 10px; background:#fef1e0;">
+                    💡 小技巧：VS Code 中打开终端 (<code>Ctrl + `</code>) 并排使用，图形界面 + 命令组合最灵活。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作流警示 -->
+    <div style="background: #eef3fc; border-radius: 1.2rem; padding: 0.9rem 1.2rem; margin-top: 1rem;">
+        <div style="font-weight: 700;">⚠️ 常见错误回顾（与你之前的场景对应）</div>
+        <div style="margin-top: 8px; font-size: 0.9rem;">
+        ❌ 只点击「推送」但 GitHub 没变化 → 缺少 <code>git add</code> + <code>git commit</code>，本地仓库没有新提交。<br>
+        ✅ 正确顺序：<strong>更改 → 暂存（+号） → 提交信息 → ✓ commit → 推送</strong>。
+        </div>
+    </div>
+
+    <div class="footnote">
+        📌 基于 Git 真实模型 | 四个空间 + 五大命令 | VS Code 映射辅助理解 | Git 是工具，GitHub 是平台 | 终端与GUI 等价互补
+    </div>
+</div>
+</body>
+</html>
